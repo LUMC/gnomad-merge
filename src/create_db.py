@@ -17,11 +17,14 @@
 create_db.py
 ~~~~~~~~~~~~
 
-Create database based on a set of genome VCF files and one exome VCF file.
+Create database based on a set VCF files.
 
-This will first insert all records in the genome VCF files, which are
-assumed to contain the vast majority fo records. After that, it will upsert
-the exome records.
+It will upsert all records over all VCF files.
+AC and AN fields will be updated when a conflict occurs (i.e. when the same
+record already exists). Therefore, be careful _not_ to add the same file
+twice.
+
+This _only_ works for sqlite versions >= 3.24.0
 
 :copyright: (c) 2018 Sander Bollen
 :copyright: (c) 2018 Leiden University Medical Center
@@ -37,9 +40,11 @@ import sys
 
 import tqdm
 
-
-_variants_insert_fmt = ("INSERT INTO variants VALUES (:chrom, :pos, :id, "
-                        ":ref, :alt, :qual, :ac, :an, :filter)")
+_variants_upsert_fmt = ("INSERT into variants VALUES (:chrom, :pos, :id, "
+                        ":ref, :alt, :qual, :ac, :an, :filter) "
+                        "ON CONFLICT(chrom, pos, ref, alt) "
+                        "DO UPDATE SET ac=ac+excluded.ac, "
+                        "an=an+excluded.an")
 
 
 def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
@@ -69,7 +74,7 @@ def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
     }
 
 
-def insert_record_dicts_to_db(conn: sqlite3.Connection,
+def upsert_record_dicts_to_db(conn: sqlite3.Connection,
                               dicts: List[Dict]) -> None:
     """
     Insert a collection of record dictionaries to the database.
@@ -81,7 +86,7 @@ def insert_record_dicts_to_db(conn: sqlite3.Connection,
     cursor = conn.cursor()
 
     try:
-        cursor.executemany(_variants_insert_fmt, dicts)
+        cursor.executemany(_variants_upsert_fmt, dicts)
         conn.commit()
     except sqlite3.Error as e:
         conn.rollback()
@@ -100,7 +105,7 @@ def generate_chunks(vcf: cyvcf2.VCFReader,
     yield chunk
 
 
-def insert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
+def upsert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
                      chunksize: int = 1000) -> None:
     """
     Insert all records in a VCF file to the db
@@ -114,11 +119,12 @@ def insert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
     reader = cyvcf2.VCF(str(vcf_path))
     chunker = generate_chunks(reader, chunksize)
     with tqdm.tqdm(unit="variant", unit_scale=True) as bar:
-        for i, chunk in enumerate(chunker):
+        for chunk in chunker:
             bar.update(chunksize)
             dicts = list(map(vcf_record_as_dict, chunk))
-            insert_record_dicts_to_db(conn, dicts)
-    print("Finished inserting for file: {}".format(vcf_path.name))
+            upsert_record_dicts_to_db(conn, dicts)
+    print("Finished inserting for file: {}".format(vcf_path.name),
+          file=sys.stderr)
 
 
 def create_connection(db_path: Path) -> sqlite3.Connection:
@@ -150,11 +156,11 @@ def create_table(conn: sqlite3.Connection) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exome-vcf", required=True, type=Path,
-                        help="Path to exome VCF")
     parser.add_argument("-o", "--output", required=True, type=Path,
                         help="Path to output database file")
-    parser.add_argument("genome_vcfs", type=Path, nargs="+",
+    parser.add_argument("--chunksize", type=int, default=1000,
+                        help="Amount of records to upsert at once")
+    parser.add_argument("vcfs", type=Path, nargs="+",
                         help="List of genome VCFs")
 
     args = parser.parse_args()
@@ -162,3 +168,5 @@ if __name__ == "__main__":
     conn = create_connection(args.output)
     create_table(conn)
 
+    for vcf in args.vcfs:
+        upsert_vcf_to_db(conn, vcf, args.chunksize)
