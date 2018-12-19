@@ -19,6 +19,10 @@ create_db.py
 
 Create database based on a set of genome VCF files and one exome VCF file.
 
+This will first insert all records in the genome VCF files, which are
+assumed to contain the vast majority fo records. After that, it will upsert
+the exome records.
+
 :copyright: (c) 2018 Sander Bollen
 :copyright: (c) 2018 Leiden University Medical Center
 
@@ -28,6 +32,34 @@ import argparse
 from pathlib import Path
 import cyvcf2
 import sqlite3
+from typing import Dict
+
+
+def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
+    """
+    Transform vcf record to a dict
+    :param record: cyvcf2 variant record
+    :return: dict with keys (chrom, pos, ref, alt, qual, ac, an, filter)
+    :raises: ValueError in case AC or AN is not defined for record.
+    """
+    alt = record.ALT[0]  # we do not support multiallelic variuants
+    try:
+        ac = record.INFO['AC']
+        an = record.INFO['AN']
+    except KeyError:
+        raise ValueError("Record at {0}:{1} does not have AC or AN "
+                         "fields".format(record.CHROM, record.POS))
+    return {
+        "chrom": record.CHROM,
+        "pos": record.POS,
+        "id": record.ID,
+        "ref": record.REF,
+        "alt": alt,
+        "qual": record.QUAL,
+        "ac": ac,
+        "an": an,
+        "filter": record.FILTER
+    }
 
 
 def create_connection(db_path: Path) -> sqlite3.Connection:
@@ -69,3 +101,4 @@ if __name__ == "__main__":
 
     conn = create_connection(args.output)
     create_table(conn)
+

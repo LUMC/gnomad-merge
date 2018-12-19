@@ -46,4 +46,5 @@ If multiple records occur on the same variant the following should happen:
 1. QUAL field is updated with the sum of QUAL fields.
 2. AC field is updated with the sum of all AC fields.
 3. AN field is updated with the sum of all AN fields.
-4. ID and FILTER fields are a comma-separated set of ID and FILTER fields.
+4. ID and FILTER fields are a comma-separated and semicolon-separated set of 
+   ID and FILTER fields.
