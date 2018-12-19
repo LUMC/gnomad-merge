@@ -32,7 +32,11 @@ import argparse
 from pathlib import Path
 import cyvcf2
 import sqlite3
-from typing import Dict
+from typing import Dict, List, Iterator
+
+
+_variants_insert_fmt = ("INSERT INTO variants VALUES (:chrom, :pos, :id, "
+                        ":ref, :alt, :qual, :ac, :an, :filter)")
 
 
 def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
@@ -42,7 +46,7 @@ def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
     :return: dict with keys (chrom, pos, ref, alt, qual, ac, an, filter)
     :raises: ValueError in case AC or AN is not defined for record.
     """
-    alt = record.ALT[0]  # we do not support multiallelic variuants
+    alt = record.ALT[0]  # we do not support multiallelic variants
     try:
         ac = record.INFO['AC']
         an = record.INFO['AN']
@@ -62,6 +66,53 @@ def vcf_record_as_dict(record: cyvcf2.Variant) -> Dict:
     }
 
 
+def insert_record_dicts_to_db(conn: sqlite3.Connection,
+                              dicts: List[Dict]) -> None:
+    """
+    Insert a collection of record dictionaries to the database.
+    :param conn: connection to database
+    :param dicts: list of dictionaries to insert
+    :return: None
+    :raises sqlite.Error
+    """
+    cursor = conn.cursor()
+
+    try:
+        cursor.executemany(_variants_insert_fmt, dicts)
+        conn.commit()
+    except sqlite3.Error as e:
+        conn.rollback()
+        raise e
+
+
+def generate_chunks(vcf: cyvcf2.VCFReader,
+                    chunksize: int) -> Iterator[List[cyvcf2.Variant]]:
+    """Generate chunks of variant records for a vcf reader"""
+    chunk = []
+    for record in vcf:
+        if len(chunk) == chunksize:
+            yield chunk
+            chunk = []  # reset
+        chunk.append(record)
+    yield chunk
+
+
+def insert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
+                     chunksize: int = 1000) -> None:
+    """
+    Insert all records in a VCF file to the db
+    :param conn: connection to database
+    :param vcf_path: path to vcf file
+    :param chunksize: amount of vcf records to insert simultaneously.
+    :return: none
+    """
+    reader = cyvcf2.VCF(str(vcf_path))
+    chunker = generate_chunks(reader, chunksize)
+    for i, chunk in enumerate(chunker):
+        dicts = list(map(vcf_record_as_dict, chunk))
+        insert_record_dicts_to_db(conn, dicts)
+
+
 def create_connection(db_path: Path) -> sqlite3.Connection:
     """Create DB connection"""
     return sqlite3.connect(str(db_path))
@@ -76,7 +127,8 @@ def create_table(conn: sqlite3.Connection) -> None:
     variant_table_str = ("CREATE TABLE IF NOT EXISTS variants "
                          "(chrom TEXT NOT NULL, "
                          "pos INTEGER NOT NULL, "
-                         "id TEXT, ref TEXT NOT NULL, "
+                         "id TEXT, "
+                         "ref TEXT NOT NULL, "
                          "alt TEXT NOT NULL, "
                          "qual REAL NOT NULL, "
                          "ac INTEGER NOT NULL, "
