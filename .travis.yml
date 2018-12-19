@@ -18,3 +18,4 @@ before_install:
 
 script:
   - python --version
+  - py.test -v tests
