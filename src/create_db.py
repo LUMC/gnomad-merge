@@ -29,7 +29,7 @@ This _only_ works for sqlite versions >= 3.24.0
 :copyright: (c) 2018 Sander Bollen
 :copyright: (c) 2018 Leiden University Medical Center
 
-:license: AGPL-3.0
+:license: AGPL-3.0-or-later
 """
 import argparse
 from pathlib import Path
@@ -96,6 +96,8 @@ def upsert_record_dicts_to_db(conn: sqlite3.Connection,
 def generate_chunks(vcf: cyvcf2.VCFReader,
                     chunksize: int) -> Iterator[List[cyvcf2.Variant]]:
     """Generate chunks of variant records for a vcf reader"""
+    if chunksize < 1:
+        raise ValueError("Chunksize must be at least 1")
     chunk = []
     for record in vcf:
         if len(chunk) == chunksize:
@@ -114,7 +116,7 @@ def upsert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
     :param chunksize: amount of vcf records to insert simultaneously.
     :return: none
     """
-    print("Insert starting for file: {}".format(vcf_path.name),
+    print("Insert into db starting for file: {}".format(vcf_path.name),
           file=sys.stderr)
     reader = cyvcf2.VCF(str(vcf_path))
     chunker = generate_chunks(reader, chunksize)
@@ -123,7 +125,7 @@ def upsert_vcf_to_db(conn: sqlite3.Connection, vcf_path: Path,
             bar.update(chunksize)
             dicts = list(map(vcf_record_as_dict, chunk))
             upsert_record_dicts_to_db(conn, dicts)
-    print("Finished inserting for file: {}".format(vcf_path.name),
+    print("Finished inserting into db for file: {}".format(vcf_path.name),
           file=sys.stderr)
 
 
