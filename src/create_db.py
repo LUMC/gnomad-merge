@@ -1,4 +1,4 @@
-# Copyright (C) 2018 Leiden University Medical Center
+# Copyright (C) 2018 Leiden University Medical Center, Sander Bollen
 # This file is part of gnomad-merge
 #
 # pytest-workflow is free software: you can redistribute it and/or modify
