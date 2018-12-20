@@ -59,6 +59,8 @@ def calc_af(ac: int, an: int) -> Optional[float]:
     """Calculate af"""
     if an > 0:
         return ac / an
+    else:
+        return None
 
 
 def db_tuple_to_record(tupl: Tuple) -> str:
@@ -100,10 +102,11 @@ def transform_db_to_vcf(db_path: Path) -> Iterator[str]:
 def main(db_path: Path) -> None:
     transformer = transform_db_to_vcf(db_path)
     print(VCF_HEADER)
-    with tqdm.tqdm(unit="variant", unit_scale=True) as bar:
+    with tqdm.tqdm(unit="variant", unit_scale=True) as progress_bar:
         for i, row in enumerate(transformer):
             if i % 1000 == 0:
-                bar.update(1000)  # only update bar once every 1000 records
+                progress_bar.update(1000)
+                # only update bar once every 1000 records
             print(row)
 
 
