@@ -8,6 +8,7 @@ import importlib.util
 
 import pytest
 import cyvcf2
+import tempfile
 
 
 # some magic to import the script as a module
@@ -36,6 +37,19 @@ def mini_vcf(mini_vcf_path):
 def missing_vcf():
     path = Path(__file__).parent / Path("data") / Path("missing.vcf")
     return cyvcf2.VCF(str(path))
+
+
+@pytest.fixture()
+def temp_db_conn():
+    temp = tempfile.NamedTemporaryFile(delete=False)
+    yield create_db.create_connection(Path(temp.name))
+    temp.close()
+
+
+@pytest.fixture()
+def inited_conn(temp_db_conn):
+    create_db.create_table(temp_db_conn)
+    return temp_db_conn
 
 
 __vcf_records = [x for x in mini_vcf(mini_vcf_path())]  # for parametrization
@@ -95,3 +109,66 @@ def test_valueerror_dict(missing_vcf):
     for record in missing_vcf:
         with pytest.raises(ValueError):
             create_db.vcf_record_as_dict(record)
+
+
+def test_table_creation(temp_db_conn):
+    create_db.create_table(temp_db_conn)
+
+    cursor = temp_db_conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+
+    assert cursor.fetchone()[0] == 'variants'
+
+
+def test_insert_records(inited_conn):
+    dicts = list(map(create_db.vcf_record_as_dict, __vcf_records))
+    create_db.upsert_record_dicts_to_db(inited_conn, dicts)
+
+    cursor = inited_conn.cursor()
+    cursor.execute("SELECT ac, an FROM variants")
+
+    returned = cursor.fetchall()
+    assert returned[0] == (1, 72302)
+    assert returned[1] == (0, 72304)
+    assert returned[2] == (0, 72310)
+
+
+def test_upsert_records(inited_conn):
+    dicts = list(map(create_db.vcf_record_as_dict, __vcf_records))
+    create_db.upsert_record_dicts_to_db(inited_conn, dicts)
+    create_db.upsert_record_dicts_to_db(inited_conn, dicts)  # do it twice
+
+    cursor = inited_conn.cursor()
+    cursor.execute("SELECT ac, an FROM variants")
+
+    returned = cursor.fetchall()
+    assert returned[0] == (2, 144604)
+    assert returned[1] == (0, 144608)
+    assert returned[2] == (0, 144620)
+
+
+def test_insert_vcf(inited_conn):
+    path = mini_vcf_path()
+    create_db.upsert_vcf_to_db(inited_conn, path)
+
+    cursor = inited_conn.cursor()
+    cursor.execute("SELECT ac, an FROM variants")
+
+    returned = cursor.fetchall()
+    assert returned[0] == (1, 72302)
+    assert returned[1] == (0, 72304)
+    assert returned[2] == (0, 72310)
+
+
+def test_upsert_vcf(inited_conn):
+    path = mini_vcf_path()
+    create_db.upsert_vcf_to_db(inited_conn, path)
+    create_db.upsert_vcf_to_db(inited_conn, path)
+
+    cursor = inited_conn.cursor()
+    cursor.execute("SELECT ac, an FROM variants")
+
+    returned = cursor.fetchall()
+    assert returned[0] == (2, 144604)
+    assert returned[1] == (0, 144608)
+    assert returned[2] == (0, 144620)
