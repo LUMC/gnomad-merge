@@ -87,8 +87,7 @@ rule normalize:
 
 rule fill_db:
     """File database with variants"""
-    input: expand("normalized/{fname}.vcf",
-                  fname=list(all_input_vcf_files.keys()))
+    input: expand("normalized/{fname}.vcf", fname=list(all_input_vcf_files.keys()))
     params:
         chunksize=chunksize
     output: "db/gnomad.db"
@@ -96,7 +95,7 @@ rule fill_db:
     shell: "python src/create_db.py --chunksize {params.chunksize} -o {output} {input}"
 
 
-rule export_db
+rule export_db:
     """Export db back to VCF format"""
     input: "db/gnomad.db"
     output: temp("exports/unsorted.vcf")
@@ -104,7 +103,7 @@ rule export_db
     shell: "python src/db_to_vcf.py {input} > {output}"
 
 
-rule sort_bgzip
+rule sort_bgzip:
     """Sort and bgzip VCF file"""
     input: "exports/unsorted.vcf"
     output: "exports/gnomad.all.vcf.gz"
