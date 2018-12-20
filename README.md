@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/LUMC/gnomad-merge/branch/master/graph/badge.svg)](https://codecov.io/gh/LUMC/gnomad-merge) [![Build Status](https://travis-ci.org/LUMC/gnomad-merge.svg?branch=master)](https://travis-ci.org/LUMC/gnomad-merge)
+
 ## Rationale
 
 GnomAD supplies exomes and genomes separately, with genomes in separate
@@ -46,4 +48,5 @@ If multiple records occur on the same variant the following should happen:
 1. QUAL field is updated with the sum of QUAL fields.
 2. AC field is updated with the sum of all AC fields.
 3. AN field is updated with the sum of all AN fields.
-4. ID and FILTER fields are a comma-separated set of ID and FILTER fields.
+4. ID and FILTER fields are a comma-separated and semicolon-separated set of 
+   ID and FILTER fields.
