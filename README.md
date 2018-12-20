@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/LUMC/gnomad-merge/branch/master/graph/badge.svg)](https://codecov.io/gh/LUMC/gnomad-merge) [![Build Status](https://travis-ci.org/LUMC/gnomad-merge.svg?branch=master)](https://travis-ci.org/LUMC/gnomad-merge)
+
 ## Rationale
 
 GnomAD supplies exomes and genomes separately, with genomes in separate
