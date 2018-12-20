@@ -23,48 +23,90 @@ big VCF containing only global allele frequencies.
 from pathlib import Path
 
 gnomad_data_dir = config.get("GNOMAD_DATA_DIR")
+reference_fasta = config.get("REFERENCE_FASTA")
+chunksize = config.get("CHUNKSIZE", 1000)
 if gnomad_data_dir is None:
     raise ValueError("--config GNOMAD_DATA_DIR must be set")
+if reference_fasta is None:
+    raise ValueError("--config REFERENCE_FASTA must be set")
+
+
+# gnomad_data folder structure looks like:
+# - vcf
+# --- exomes
+# ------ gnomad.exomes.r2.0.1.sites.vcf.gz
+# --- genomes
+# ------ gnomad.genomes.r2.0.1.sites.1.vcf.gz
+# ------ gnomad.genomes.r2.0.1.sites.2.vcf.gz
+
+
+vcf_dir = Path(gnomad_data_dir) / Path("vcf")
+exome_dir = vcf_dir / Path("exomes")
+genome_dir = vcf_dir / Path("genomes")
+
+# get some sensible name for a file
+# e.g. exomes.r2.0.1.sites
+# so it can be used as a wildcard
+def get_name_for_file(path: Path):
+    return path.name.split(".vcf.gz")[0].split("gnomad.")[-1]
+
+# generate dictionary of names -> absolute paths
+all_input_vcf_files = {}
+for x in exome_dir.iterdir():
+    if x.name.endswith(".vcf.gz"):
+        all_input_vcf_files[get_name_for_file(x)] = x.absolute()
+for g in genome_dir.iterdir():
+    if g.name.endswith(".vcf.gz"):
+        all_input_vcf_files[get_name_for_file(g)] = g.absolute()
+
+
+def get_file_for_name(wilcards):
+    """Input function to get absolute path pertaining to a file"""
+    return str(all_input_vcf_files[wilcards.fname])
+
+
+rule all: "exports/gnomad.all.vcf.gz"
 
 
 rule decompose:
     """Decompose VCF files"""
-    input: "a vcf"
-    output: "a decomposed vcf"
+    input: get_name_for_file
+    output: temp("decomposed/{fname}.vcf")
     conda: "envs/vt.yml"
     shell: "vt decompose -s {input} -o {output}"
 
 rule normalize:
     """Normalize VCF files"""
     input:
-        vcf="a vcf"
-        ref="a fasta"
-    output: "a normalized vcf"
+        vcf="decomposed/{fname}.vcf",
+        ref=reference_fasta
+    output: temp("normalized/{fname}.vcf")
     conda: "envs/vt.yml"
     shell: "vt normalize {input.vcf} -r {input.ref} -o {output}"
 
 
 rule fill_db:
     """File database with variants"""
-    input: "collection of vcf files"
+    input: expand("normalized/{fname}.vcf",
+                  fname=list(all_input_vcf_files.keys()))
     params:
-        chunksize="10000"
-    output: "db"
+        chunksize=chunksize
+    output: "db/gnomad.db"
     conda: "envs/create_db.yml"
     shell: "python src/create_db.py --chunksize {params.chunksize} -o {output} {input}"
 
 
 rule export_db
     """Export db back to VCF format"""
-    input: "db"
-    output: temp("vcf")
+    input: "db/gnomad.db"
+    output: temp("exports/unsorted.vcf")
     conda: "envs/create_db.yml"
     shell: "python src/db_to_vcf.py {input} > {output}"
 
 
 rule sort_bgzip
     """Sort and bgzip VCF file"""
-    input: "vcf"
-    output: "sorted.vcf.gz"
+    input: "exports/unsorted.vcf"
+    output: "exports/gnomad.all.vcf.gz"
     conda: "envs/sort.yml"
     shell: "bedtools sort -header -i {input} | bgzip -c > {output} && tabix -pvcf {output}"
