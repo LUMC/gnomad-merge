@@ -1,0 +1,19 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read Depth">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
+##FILTER=<ID=RF,Description="Failed random forests filters (SNV cutoff 0.1, indels cutoff 0.2)">
+##FILTER=<ID=AC0,Description="Allele Count is zero (i.e. no high-confidence genotype (GQ >= 20, DP >= 10, AB => 0.2 for het calls))">
+##FILTER=<ID=InbreedingCoeff,Description="InbreedingCoeff < -0.3">
+##FILTER=<ID=LCR,Description="In a low complexity region">
+##FILTER=<ID=SEGDUP,Description="In a segmental duplication region">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency among genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+1	17412	.	C	A	4870.18	PASS	AC=1;AF=1.38309e-05;AN=72302
+1	17415	.	G	A	7339.66	RF;AC0	AC=0;AF=0;AN=72304
+1	17417	.	G	C	736.82	AC0	AC=0;AF=0;AN=72310
