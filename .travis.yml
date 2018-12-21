@@ -20,8 +20,8 @@ before_install:
 script:
   - python --version
   - flake8 src tests
-  - py.test -v --cov=src --cov-report=term-missing tests
-  - snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/ REFERENCE_FASTA=tests/data/ref.fa  # test dry-run.
+  - coverage run --source=src -m py.test -v tests
+  - coverage xml
 
 after_success:
   - codecov

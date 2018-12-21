@@ -1,0 +1,8 @@
+- name: test_dry_run
+  command: snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/ REFERENCE_FASTA=tests/data/ref.fa
+- name: test_config_errors
+  command: snakemake  -n -r -p -s Snakefile
+  exit_code: 1
+  stdout:
+    contains:
+      - '--config GNOMAD_DATA_DIR must be set'
