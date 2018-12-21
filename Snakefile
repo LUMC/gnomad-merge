@@ -60,17 +60,22 @@ for g in genome_dir.iterdir():
         all_input_vcf_files[get_name_for_file(g)] = g.absolute()
 
 
-def get_file_for_name(wilcards):
+fnames = list(all_input_vcf_files.keys())
+
+
+
+def get_file_for_name(wildcards):
     """Input function to get absolute path pertaining to a file"""
-    return str(all_input_vcf_files[wilcards.fname])
+    return str(all_input_vcf_files[wildcards.fname])
 
 
-rule all: "exports/gnomad.all.vcf.gz"
+rule all:
+    input: "exports/gnomad.all.vcf.gz"
 
 
 rule decompose:
     """Decompose VCF files"""
-    input: get_name_for_file
+    input: get_file_for_name
     output: temp("decomposed/{fname}.vcf")
     conda: "envs/vt.yml"
     shell: "vt decompose -s {input} -o {output}"
@@ -87,12 +92,13 @@ rule normalize:
 
 rule fill_db:
     """File database with variants"""
-    input: expand("normalized/{fname}.vcf", fname=list(all_input_vcf_files.keys()))
+    input: expand("normalized/{fname}.vcf", fname=fnames)
     params:
         chunksize=chunksize
     output: "db/gnomad.db"
     conda: "envs/create_db.yml"
-    shell: "python src/create_db.py --chunksize {params.chunksize} -o {output} {input}"
+    shell: "python src/create_db.py --chunksize {params.chunksize} "
+           "-o {output} {input}"
 
 
 rule export_db:
@@ -108,4 +114,5 @@ rule sort_bgzip:
     input: "exports/unsorted.vcf"
     output: "exports/gnomad.all.vcf.gz"
     conda: "envs/sort.yml"
-    shell: "bedtools sort -header -i {input} | bgzip -c > {output} && tabix -pvcf {output}"
+    shell: "bedtools sort -header -i {input} | bgzip -c > {output} "
+           "&& tabix -pvcf {output}"
