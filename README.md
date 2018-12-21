@@ -89,5 +89,4 @@ values. The full list of configuration options is outlined in the table below.
 | GNOMAD_DATA_DIR | Path to gnomad_data directory | Yes | NA | 
 | REFERENCE_FASTA | reference file to be used for variant normalization | Yes | NA |
 | CHUNKSIZE | Amount of variants added to db in one chunk. Increase to speed up | No | 1000 |
-| EXCLUDE_PATTERNS | Filename patterns to exclude in collection of VCF files to be used as inputs for pipeline. GnomAD supplies "coding" files as part of the genome collection. Not excluding those would result in doubly added variants to the database. | No | `coding` |
-| ----------------- | ----------- | -------- | ---------------- |
+| EXCLUDE_PATTERNS | Comma-separated list of filename patterns to exclude in collection of VCF files to be used as inputs for pipeline. GnomAD supplies "coding" files as part of the genome collection. Not excluding those would result in doubly added variants to the database. | No | `coding` |
