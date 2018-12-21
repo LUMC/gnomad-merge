@@ -25,6 +25,12 @@ from pathlib import Path
 gnomad_data_dir = config.get("GNOMAD_DATA_DIR")
 reference_fasta = config.get("REFERENCE_FASTA")
 chunksize = config.get("CHUNKSIZE", 1000)
+
+# genome set comes with additional vcf files for coding regions.
+# these need to be pruned from from our inputs, lest we count acs and ans
+# twice for these variants.
+exclude_patterns = config.get("EXCLUDE_PATTERNS", "coding").split(",")
+
 if gnomad_data_dir is None:
     raise ValueError("--config GNOMAD_DATA_DIR must be set")
 if reference_fasta is None:
@@ -50,13 +56,19 @@ genome_dir = vcf_dir / Path("genomes")
 def get_name_for_file(path: Path):
     return path.name.split(".vcf.gz")[0].split("gnomad.")[-1]
 
+
+def name_has_patterns(patterns, name):
+    return any(x in name for x in patterns)
+
 # generate dictionary of names -> absolute paths
 all_input_vcf_files = {}
 for x in exome_dir.iterdir():
-    if x.name.endswith(".vcf.gz"):
+    if x.name.endswith(".vcf.gz") and not name_has_patterns(
+            exclude_patterns, x.name):
         all_input_vcf_files[get_name_for_file(x)] = x.absolute()
 for g in genome_dir.iterdir():
-    if g.name.endswith(".vcf.gz"):
+    if g.name.endswith(".vcf.gz") and not name_has_patterns(
+            exclude_patterns, g.name):
         all_input_vcf_files[get_name_for_file(g)] = g.absolute()
 
 
