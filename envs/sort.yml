@@ -1,0 +1,12 @@
+name: sort
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bedtools=2.27.1
+  - tabix=0.2.6
+  - libgcc-ng=7.2.0
+  - libstdcxx-ng=7.2.0
+  - zlib=1.2.11
+

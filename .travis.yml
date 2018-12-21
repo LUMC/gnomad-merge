@@ -15,11 +15,13 @@ before_install:
   - conda env create -n my_env -f envs/create_db.yml
   - source activate my_env
   - pip install -r requirements-dev.txt
+  - pip install -r requirements.txt
 
 script:
   - python --version
   - flake8 src tests
   - py.test -v --cov=src --cov-report=term-missing tests
+  - snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/ REFERENCE_FASTA=tests/data/ref.fa  # test dry-run.
 
 after_success:
   - codecov
