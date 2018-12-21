@@ -88,23 +88,23 @@ rule all:
 rule decompose:
     """Decompose VCF files"""
     input: get_file_for_name
-    output: temp("decomposed/{fname}.vcf")
+    output: temp("decomposed/{fname}.vcf.gz")
     conda: "envs/vt.yml"
     shell: "vt decompose -s {input} -o {output}"
 
 rule normalize:
     """Normalize VCF files"""
     input:
-        vcf="decomposed/{fname}.vcf",
+        vcf="decomposed/{fname}.vcf.gz",
         ref=reference_fasta
-    output: temp("normalized/{fname}.vcf")
+    output: temp("normalized/{fname}.vcf.gz")
     conda: "envs/vt.yml"
     shell: "vt normalize {input.vcf} -r {input.ref} -o {output}"
 
 
 rule fill_db:
     """File database with variants"""
-    input: expand("normalized/{fname}.vcf", fname=fnames)
+    input: expand("normalized/{fname}.vcf.gz", fname=fnames)
     params:
         chunksize=chunksize
     output: "db/gnomad.db"
