@@ -15,6 +15,7 @@ before_install:
   - conda env create -n my_env -f envs/create_db.yml
   - source activate my_env
   - pip install -r requirements-dev.txt
+  - pip install -r requirements.txt
 
 script:
   - python --version
