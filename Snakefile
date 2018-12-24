@@ -37,6 +37,13 @@ if reference_fasta is None:
     raise ValueError("--config REFERENCE_FASTA must be set")
 
 
+# can't use __file__ for location of Snakefile, have to use snakemake
+# built-in scrdir
+script_dir = Path(srcdir("src"))
+create_py = str(script_dir / Path("create_db.py"))
+export_py = str(script_dir / Path("db_to_vcf.py"))
+
+
 # gnomad_data folder structure looks like:
 # - vcf
 # --- exomes
@@ -104,21 +111,25 @@ rule normalize:
 
 rule fill_db:
     """File database with variants"""
-    input: expand("normalized/{fname}.vcf.gz", fname=fnames)
+    input:
+        vcfs=expand("normalized/{fname}.vcf.gz", fname=fnames),
+        create_py=create_py
     params:
         chunksize=chunksize
     output: "db/gnomad.db"
     conda: "envs/create_db.yml"
-    shell: "python src/create_db.py --chunksize {params.chunksize} "
-           "-o {output} {input}"
+    shell: "python {input.create_py} --chunksize {params.chunksize} "
+           "-o {output} {input.vcfs}"
 
 
 rule export_db:
     """Export db back to VCF format"""
-    input: "db/gnomad.db"
+    input:
+        db="db/gnomad.db",
+        export_py=export_py
     output: temp("exports/unsorted.vcf")
     conda: "envs/create_db.yml"
-    shell: "python src/db_to_vcf.py {input} > {output}"
+    shell: "python {input.export_py} {input.db} > {output}"
 
 
 rule sort_bgzip:
