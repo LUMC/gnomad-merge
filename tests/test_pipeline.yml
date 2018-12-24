@@ -1,0 +1,20 @@
+- name: test_dry_run
+  command: snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/ REFERENCE_FASTA=tests/data/ref.fa
+- name: test_config_errors
+  command: snakemake  -n -r -p -s Snakefile
+  exit_code: 1
+  stdout:
+    contains:
+      - '--config GNOMAD_DATA_DIR must be set'
+- name: test_config_errors2
+  command: snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/
+  exit_code: 1
+  stdout:
+    contains:
+      - '--config REFERENCE_FASTA must be set'
+- name: test_config_errors3
+  command: snakemake  -n -r -p -s Snakefile --config REFERENCE_FASTA=tests/data/ref.fa
+  exit_code: 1
+  stdout:
+    contains:
+      - '--config GNOMAD_DATA_DIR must be set'
