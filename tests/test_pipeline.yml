@@ -6,3 +6,9 @@
   stdout:
     contains:
       - '--config GNOMAD_DATA_DIR must be set'
+- name: test_config_errors2
+  command: snakemake  -n -r -p -s Snakefile --config GNOMAD_DATA_DIR=tests/data/gnomad_data/
+  exit_code: 1
+  stdout:
+    contains:
+      - '--config REFERENCE_FASTA must be set'
