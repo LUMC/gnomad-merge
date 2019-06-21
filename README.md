@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/LUMC/gnomad-merge/branch/master/graph/badge.svg)](https://codecov.io/gh/LUMC/gnomad-merge) [![Build Status](https://travis-ci.org/LUMC/gnomad-merge.svg?branch=master)](https://travis-ci.org/LUMC/gnomad-merge)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3251565.svg)](https://doi.org/10.5281/zenodo.3251565)
 
 ## Rationale
 
